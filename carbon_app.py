@@ -31,7 +31,7 @@ logger = setup_logging()
 # Page Configuration
 # =============================================================================
 st.set_page_config(
-    page_title="溫室氣體盤查儀表板",
+    page_title="校園碳盤查",
     page_icon="🌍",
     layout="wide"
 )
@@ -283,7 +283,7 @@ def login_page():
         logger.error("無法載入任何背景圖片")
 
     # Clean login UI
-    st.title("溫室氣體盤查系統登入")
+    st.title("校園碳盤查系統")
     st.write("請使用您的帳號密碼登入")
 
     # Login form
