@@ -205,7 +205,7 @@ def display_footer():
         logo_path,
         f"images/{logo_path}",
         f"assets/{logo_path}",
-        r"C:\Users\ElvisChen\Desktop\碳盤查_2025\OFFICE_NUTC.jpg"  # Original absolute path as fallback
+        "OFFICE_NUTC.jpg"  # Original absolute path as fallback
     ]
 
     logo_loaded = False
@@ -264,7 +264,7 @@ def login_page():
         "assets/img1.jpg",
         "background_for_login.png",
         "background.jpg",
-        r"C:\Users\ElvisChen\PycharmProjects\paper_ana\GMD_sales_data\img1.jpg"
+        "img1.jpg"
     ]
 
     background_loaded = False
