@@ -469,7 +469,12 @@ def create_input_form(prefix, title):
     """Renders the multi-tab data input form."""
     st.title(f"{title}-溫室氣體盤查資料輸入")
     years_opts = list(range(datetime.now().year + 25, 2019, -1))
-    st.selectbox("盤查年度:", years_opts, key=f'inventory_year_{prefix}')
+    # Ensure the index is valid
+    try:
+        current_year_index = years_opts.index(st.session_state[f'inventory_year_{prefix}'])
+    except ValueError:
+        current_year_index = 0 # Default to the first item if not found
+    st.selectbox("盤查年度:", years_opts, index=current_year_index, key=f'inventory_year_{prefix}')
     st.info("請填寫以下各類別的活動數據，系統將自動計算排放量。")
     st.divider()
     
@@ -483,7 +488,7 @@ def create_input_form(prefix, title):
             cols = st.columns([2,2,1])
             cols[0].write(f"{item} ({values['unit']})")
             values['usage'] = cols[1].number_input(" ", key=f"s1_{item}_{prefix}", value=values['usage'], label_visibility="collapsed")
-            cols[2].text_input(" ", f"{values['usage'] * values['factor']:.4f}", disabled=True, label_visibility="collapsed")
+            cols[2].text_input(" ", f"{values['usage'] * values['factor']:.4f}", key=f"s1_out_{item}_{prefix}", disabled=True, label_visibility="collapsed")
 
     with tabs[1]:
         st.header("移動源")
@@ -492,7 +497,7 @@ def create_input_form(prefix, title):
             cols = st.columns([2,2,1])
             cols[0].write(f"{values.get('name', item)} ({values['unit']})")
             values['usage'] = cols[1].number_input(" ", key=f"s2_{item}_{prefix}", value=values['usage'], label_visibility="collapsed")
-            cols[2].text_input(" ", f"{values['usage'] * values['factor']:.4f}", disabled=True, label_visibility="collapsed")
+            cols[2].text_input(" ", f"{values['usage'] * values['factor']:.4f}", key=f"s2_out_{item}_{prefix}", disabled=True, label_visibility="collapsed")
 
     with tabs[2]:
         st.header("汙水")
@@ -503,7 +508,7 @@ def create_input_form(prefix, title):
                 cols = st.columns([2,2,1])
                 cols[0].write(item)
                 values['usage'] = cols[1].number_input(" ", key=f"s3_{item}_{prefix}", value=values['usage'], label_visibility="collapsed")
-                cols[2].text_input(" ", f"{values['usage'] * values['factor'] * 28:.4f}", disabled=True, label_visibility="collapsed")
+                cols[2].text_input(" ", f"{values['usage'] * values['factor'] * 28:.4f}", key=f"s3_out_{item}_{prefix}", disabled=True, label_visibility="collapsed")
 
     with tabs[3]:
         st.header("滅火器")
@@ -513,7 +518,7 @@ def create_input_form(prefix, title):
             cols[0].write(item)
             values['usage'] = cols[1].number_input(" ", key=f"s4_{item}_{prefix}", value=values['usage'], label_visibility="collapsed")
             emission = (values['usage'] * values['gwp']) / 1000 if values.get('gwp') else values['usage'] * values.get('factor', 0)
-            cols[2].text_input(" ", f"{emission:.4f}", disabled=True, label_visibility="collapsed")
+            cols[2].text_input(" ", f"{emission:.4f}", key=f"s4_out_{item}_{prefix}", disabled=True, label_visibility="collapsed")
             
     with tabs[4]:
         st.header("冷媒")
@@ -522,8 +527,8 @@ def create_input_form(prefix, title):
             cols = st.columns([2, 2, 1, 1])
             cols[0].write(item)
             values['usage'] = cols[1].number_input(" ", key=f"s5_{item}_{prefix}", value=values['usage'], step=0.1, format="%.1f", label_visibility="collapsed")
-            cols[2].text_input(" ", value=values['gwp'], disabled=True, label_visibility="collapsed")
-            cols[3].text_input(" ", f"{(values['usage'] * values['gwp']) / 1000:.4f}", disabled=True, label_visibility="collapsed")
+            cols[2].text_input(" ", value=values['gwp'], key=f"s5_gwp_{item}_{prefix}", disabled=True, label_visibility="collapsed")
+            cols[3].text_input(" ", f"{(values['usage'] * values['gwp']) / 1000:.4f}", key=f"s5_out_{item}_{prefix}", disabled=True, label_visibility="collapsed")
 
     with tabs[5]:
         st.header("員工通勤")
@@ -532,8 +537,8 @@ def create_input_form(prefix, title):
             cols = st.columns([2, 2, 1, 1])
             cols[0].write(item)
             values['distance'] = cols[1].number_input(" ", key=f"s6_{item}_{prefix}", value=values['distance'], label_visibility="collapsed")
-            cols[2].text_input(" ", value=values['factor'], disabled=True, label_visibility="collapsed")
-            cols[3].text_input(" ", f"{(values['distance'] * values['factor']) / 1000:.4f}", disabled=True, label_visibility="collapsed")
+            cols[2].text_input(" ", value=values['factor'], key=f"s6_factor_{item}_{prefix}", disabled=True, label_visibility="collapsed")
+            cols[3].text_input(" ", f"{(values['distance'] * values['factor']) / 1000:.4f}", key=f"s6_out_{item}_{prefix}", disabled=True, label_visibility="collapsed")
 
     with tabs[6]:
         st.header("外購電力與水力")
