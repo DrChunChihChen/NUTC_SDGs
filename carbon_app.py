@@ -567,17 +567,17 @@ def main_app():
         st.title("導覽選單")
 
         if st.button("AR5-溫室氣體盤查資料", use_container_width=True,
-                     type="primary" if st.session_state.page == "AR5" else "secondary"):
+                      type="primary" if st.session_state.page == "AR5" else "secondary"):
             st.session_state.page = "AR5"
             st.rerun()
 
         if st.button("AR6-溫室氣體盤查資料", use_container_width=True,
-                     type="primary" if st.session_state.page == "AR6" else "secondary"):
+                      type="primary" if st.session_state.page == "AR6" else "secondary"):
             st.session_state.page = "AR6"
             st.rerun()
 
         if st.button("校園負碳", use_container_width=True,
-                     type="primary" if st.session_state.page == "Campus" else "secondary"):
+                      type="primary" if st.session_state.page == "Campus" else "secondary"):
             st.session_state.page = "Campus"
             st.rerun()
 
@@ -703,6 +703,27 @@ def create_dashboard(prefix, title):
         s6_df['emission'] = (s6_df['distance'] * s6_df['factor']) / 1000
         s6_df = s6_df[s6_df['emission'] > 0].reset_index().rename(columns={'index': '交通工具'})
         create_breakdown_chart(s6_df, '交通工具', 'emission', '員工通勤排放')
+        
+    # --- New row for Wastewater and Refrigerant charts ---
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.session_state[f's3_septic_system_{prefix}'] == '否 (使用化糞池)':
+            s3_items = []
+            for item, values in st.session_state[f's3_data_{prefix}'].items():
+                emission = values['usage'] * values['factor'] * 28 # GWP for CH4
+                if emission > 0: s3_items.append({'人員類別': item, 'emission': emission})
+            s3_df = pd.DataFrame(s3_items)
+            create_breakdown_chart(s3_df, '人員類別', 'emission', '汙水排放')
+        else:
+            st.write("汙水排放: 無 (已納入汙水下水道)")
+            
+    with col2:
+        s5_items = []
+        for item, values in st.session_state[f's5_data_{prefix}'].items():
+            emission = (values['usage'] * values['gwp']) / 1000
+            if emission > 0: s5_items.append({'冷媒種類': item, 'emission': emission})
+        s5_df = pd.DataFrame(s5_items)
+        create_breakdown_chart(s5_df, '冷媒種類', 'emission', '冷媒逸散排放')
 
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -919,7 +940,7 @@ def create_input_form(prefix, title):
         cols = st.columns(4)
         for i, month in enumerate(data_water.keys()):
             data_water[month] = cols[i % 4].number_input(month, key=f"s7_water_{month}_{prefix}",
-                                                         value=data_water[month])
+                                                       value=data_water[month])
         total_usage_water = sum(data_water.values())
         water_factor = st.session_state[f'water_factors_{prefix}'][st.session_state[f's7_water_source_{prefix}']]
         total_emission_water = (total_usage_water * water_factor) / 1000
