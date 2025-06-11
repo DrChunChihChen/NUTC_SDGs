@@ -194,33 +194,28 @@ def set_background(file_path):
 
 
 def display_footer():
-    """Displays the contact information footer."""
+    """Displays the contact information footer with a sharp logo."""
     st.divider()
 
-    # Use relative path or check if file exists
-    logo_path = "OFFICE_NUTC.png"
+    # --- Use the PNG version of your logo ---
+    logo_path = "OFFICE_NUTC.png" 
+    
+    # Encode the logo to Base64
+    logo_base64 = get_image_as_base64(logo_path)
 
-    # Try different possible paths
-    possible_paths = [
-        logo_path,
-        f"images/{logo_path}",
-        f"assets/{logo_path}",
-        "OFFICE_NUTC.png"  # Original absolute path as fallback
-    ]
-
-    logo_loaded = False
-    for path in possible_paths:
-        if os.path.exists(path):
-            try:
-                st.image(path, width=200)
-                logo_loaded = True
-                break
-            except Exception as e:
-                st.warning(f"無法載入 logo: {path} - {e}")
-                continue
-
-    if not logo_loaded:
-        st.info("Logo 未找到，請將 OFFICE_NUTC.jpg 放在程式資料夾中")
+    if logo_base64:
+        # Use st.markdown to display the image with specific CSS
+        # The 'image-rendering: pixelated' or 'crisp-edges' can help, 
+        # but often just controlling the width precisely is enough.
+        st.markdown(
+            f'<img src="data:image/png;base64,{logo_base64}" width="200">',
+            unsafe_allow_html=True,
+        )
+    elif os.path.exists(logo_path):
+        # Fallback to st.image if base64 fails for some reason
+        st.image(logo_path, width=200) 
+    else:
+        st.info("Logo not found. Please place OFFICE_NUTC.png in the program folder.")
 
     st.caption("""
     國立臺中科技大學 永續辦公室  
@@ -230,7 +225,6 @@ def display_footer():
     信箱 : sdgsnutc2024@gmail.com
     Copyright © 2025 NUTC. All rights reserved
     """)
-
 
 # =============================================================================
 # User Authentication
