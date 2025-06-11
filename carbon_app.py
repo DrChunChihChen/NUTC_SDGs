@@ -218,13 +218,14 @@ def display_footer():
         st.info("Logo not found. Please place OFFICE_NUTC.png in the program folder.")
 
     st.caption("""
-    國立臺中科技大學 永續辦公室
-    地址 : 404 台中市北區三民路三段129號行政大樓4樓1401室
-    電話 : 04 - 2219 - 6479
-    傳真 : 04 - 2219 - 5003
+    國立臺中科技大學 永續辦公室  
+    地址 : 404 台中市北區三民路三段129號行政大樓4樓1401室  
+    電話 : 04 - 2219 - 6479  
+    傳真 : 04 - 2219 - 5003  
     信箱 : sdgsnutc2024@gmail.com
     Copyright © 2025 NUTC. All rights reserved
     """)
+
 
 # =============================================================================
 # User Authentication
@@ -566,17 +567,17 @@ def main_app():
         st.title("導覽選單")
 
         if st.button("AR5-溫室氣體盤查資料", use_container_width=True,
-                      type="primary" if st.session_state.page == "AR5" else "secondary"):
+                     type="primary" if st.session_state.page == "AR5" else "secondary"):
             st.session_state.page = "AR5"
             st.rerun()
 
         if st.button("AR6-溫室氣體盤查資料", use_container_width=True,
-                      type="primary" if st.session_state.page == "AR6" else "secondary"):
+                     type="primary" if st.session_state.page == "AR6" else "secondary"):
             st.session_state.page = "AR6"
             st.rerun()
 
         if st.button("校園負碳", use_container_width=True,
-                      type="primary" if st.session_state.page == "Campus" else "secondary"):
+                     type="primary" if st.session_state.page == "Campus" else "secondary"):
             st.session_state.page = "Campus"
             st.rerun()
 
