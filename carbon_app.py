@@ -417,9 +417,6 @@ def initialize_state():
     """Initializes session state for all pages."""
     if 'page' not in st.session_state:
         st.session_state.page = "AR5"
-    if 'uploaded_data' not in st.session_state:
-        st.session_state.uploaded_data = None
-
 
     get_ar_initial_data('ar5')
     get_ar_initial_data('ar6')
@@ -570,35 +567,19 @@ def main_app():
         st.title("導覽選單")
 
         if st.button("AR5-溫室氣體盤查資料", use_container_width=True,
-                      type="primary" if st.session_state.page == "AR5" else "secondary"):
+                     type="primary" if st.session_state.page == "AR5" else "secondary"):
             st.session_state.page = "AR5"
             st.rerun()
 
         if st.button("AR6-溫室氣體盤查資料", use_container_width=True,
-                      type="primary" if st.session_state.page == "AR6" else "secondary"):
+                     type="primary" if st.session_state.page == "AR6" else "secondary"):
             st.session_state.page = "AR6"
             st.rerun()
 
         if st.button("校園負碳", use_container_width=True,
-                      type="primary" if st.session_state.page == "Campus" else "secondary"):
+                     type="primary" if st.session_state.page == "Campus" else "secondary"):
             st.session_state.page = "Campus"
             st.rerun()
-
-        if st.button("上傳 Excel 並分析", use_container_width=True,
-                      type="primary" if st.session_state.page == "Analysis" else "secondary"):
-            st.session_state.page = "Analysis"
-            st.rerun()
-
-        uploaded_file = st.file_uploader("上傳 Excel 檔案", type=["xlsx"])
-        if uploaded_file is not None:
-            try:
-                st.session_state.uploaded_data = pd.read_excel(uploaded_file, sheet_name=None)
-                st.success("上傳成功")
-                st.session_state.page = "Analysis"
-                st.rerun()
-            except Exception as e:
-                st.error(f"檔案讀取失敗: {e}")
-
 
         st.divider()
         if st.button("登出"):
@@ -625,95 +606,16 @@ def main_app():
             create_input_form('ar6', "AR6")
     elif page == "Campus":
         show_campus_carbon_negative_page()
-    elif page == "Analysis":
-        show_analysis_page()
 
 
-def create_dashboard(prefix, title, data=None):
+def create_dashboard(prefix, title):
     """Renders the main dashboard view for a given AR version."""
-    if data is None:
-        st.title(f"{title} - {st.session_state[f'inventory_year_{prefix}']} 年度溫室氣體盤查儀表板")
-        if st.button("⬅️ 返回編輯資料"):
-            st.session_state[f'show_dashboard_{prefix}'] = False
-            st.rerun()
-        scope = st.session_state[f'scope_totals_{prefix}']
-        emissions = st.session_state[f'emission_breakdown_{prefix}']
+    st.title(f"{title} - {st.session_state[f'inventory_year_{prefix}']} 年度溫室氣體盤查儀表板")
+    if st.button("⬅️ 返回編輯資料"):
+        st.session_state[f'show_dashboard_{prefix}'] = False
+        st.rerun()
 
-        s1_df = pd.DataFrame.from_dict(st.session_state[f's1_data_{prefix}'], orient='index')
-        s1_df['emission'] = s1_df['usage'] * s1_df['factor']
-        s1_df = s1_df[s1_df['emission'] > 0].reset_index().rename(columns={'index': '燃料類別'})
-
-        s2_items = []
-        for key, values in st.session_state[f's2_data_{prefix}'].items():
-            emission = values['usage'] * values['factor']
-            if emission > 0: s2_items.append({'燃料類別': values.get('name', key), 'emission': emission})
-        s2_df = pd.DataFrame(s2_items)
-
-        s3_items = []
-        if st.session_state[f's3_septic_system_{prefix}'] == '否 (使用化糞池)':
-            for item, values in st.session_state[f's3_data_{prefix}'].items():
-                emission = values['usage'] * values['factor'] * 28 # GWP for CH4
-                if emission > 0: s3_items.append({'人員類別': item, 'emission': emission})
-        s3_df = pd.DataFrame(s3_items)
-        
-        s4_items = []
-        for item, values in st.session_state[f's4_data_{prefix}'].items():
-            emission = 0
-            if values.get('gwp') is not None:
-                emission = (values['usage'] * values['gwp']) / 1000
-            elif values.get('factor') is not None:
-                emission = values['usage'] * values['factor']
-            if emission > 0: s4_items.append({'類別': item, 'emission': emission})
-        s4_df = pd.DataFrame(s4_items)
-
-        s5_items = []
-        for item, values in st.session_state[f's5_data_{prefix}'].items():
-            emission = (values['usage'] * values['gwp']) / 1000
-            if emission > 0: s5_items.append({'冷媒種類': item, 'emission': emission})
-        s5_df = pd.DataFrame(s5_items)
-
-        s6_df = pd.DataFrame.from_dict(st.session_state[f's6_data_{prefix}'], orient='index')
-        s6_df['emission'] = (s6_df['distance'] * s6_df['factor']) / 1000
-        s6_df = s6_df[s6_df['emission'] > 0].reset_index().rename(columns={'index': '交通工具'})
-
-        s7_elec_df = pd.DataFrame(st.session_state[f's7_electricity_{prefix}'].items(), columns=['月份', '用電量(度)'])
-        s7_elec_df['emission'] = (s7_elec_df['用電量(度)'] * 0.474) / 1000
-        s7_elec_df = s7_elec_df[s7_elec_df['emission'] > 0]
-        
-        water_factor = st.session_state[f'water_factors_{prefix}'][st.session_state[f's7_water_source_{prefix}']]
-        s7_water_df = pd.DataFrame(st.session_state[f's7_water_{prefix}'].items(), columns=['月份', '用水量(度)'])
-        s7_water_df['emission'] = (s7_water_df['用水量(度)'] * water_factor) / 1000
-        s7_water_df = s7_water_df[s7_water_df['emission'] > 0]
-
-    else:
-        st.title(f"歷史資料分析儀表板 - {title}")
-        s1_total = data['固定源']['排放量(tCO2e)'].sum()
-        s2_total = data['移動源']['排放量(tCO2e)'].sum()
-        s3_total = data['汙水']['排放量(tCO2e)'].sum() if '汙水' in data else 0
-        s4_total = data['滅火器']['排放量(tCO2e)'].sum()
-        s5_total = data['冷媒']['排放量(tCO2e)'].sum()
-        s6_total = data['員工通勤']['排放量(tCO2e)'].sum()
-        s7_elec_total = data['外購電力']['排放量(tCO2e)'].sum()
-        s7_water_total = data['外購水力']['排放量(tCO2e)'].sum()
-        
-        scope1 = s1_total + s2_total + s3_total + s4_total + s5_total
-        scope2 = s7_elec_total
-        scope3 = s6_total + s7_water_total
-        scope = {
-            'Scope 1': scope1, 'Scope 2': scope2, 'Scope 3': scope3, 'Grand Total': scope1 + scope2 + scope3
-        }
-        emissions = {
-            '固定源': s1_total, '移動源': s2_total, '汙水': s3_total, '滅火器': s4_total, '冷媒': s5_total,
-            '員工通勤': s6_total, '外購電力': s7_elec_total, '外購水力': s7_water_total,
-        }
-        s1_df = data['固定源'].rename(columns={'排放量(tCO2e)': 'emission'})
-        s2_df = data['移動源'].rename(columns={'排放量(tCO2e)': 'emission'})
-        s3_df = data['汙水'].rename(columns={'排放量(tCO2e)': 'emission'}) if '汙水' in data else pd.DataFrame(columns=['人員類別', 'emission'])
-        s4_df = data['滅火器'].rename(columns={'排放量(tCO2e)': 'emission'})
-        s5_df = data['冷媒'].rename(columns={'排放量(tCO2e)': 'emission'})
-        s6_df = data['員工通勤'].rename(columns={'排放量(tCO2e)': 'emission'})
-        s7_elec_df = data['外購電力'].rename(columns={'排放量(tCO2e)': 'emission'})
-        s7_water_df = data['外購水力'].rename(columns={'排放量(tCO2e)': 'emission'})
+    scope = st.session_state[f'scope_totals_{prefix}']
 
     # KPI Cards
     col1, col2, col3, col4 = st.columns(4)
@@ -728,6 +630,7 @@ def create_dashboard(prefix, title, data=None):
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("各類別排放佔比")
+        emissions = st.session_state[f'emission_breakdown_{prefix}']
         filtered_emissions = {k: v for k, v in emissions.items() if v > 0}
 
         if filtered_emissions:
@@ -761,10 +664,6 @@ def create_dashboard(prefix, title, data=None):
         if data.empty or data[x_col].sum() == 0:
             st.write(f"{title}: 無排放數據")
             return
-        data = data[data[x_col] > 0]
-        if data.empty:
-            st.write(f"{title}: 無正排放數據")
-            return
         max_val = data[x_col].max()
         colors = ['#FF4136' if v == max_val else '#1f77b4' for v in data[x_col]]
         fig = go.Figure(go.Bar(
@@ -777,27 +676,66 @@ def create_dashboard(prefix, title, data=None):
 
     col1, col2 = st.columns(2)
     with col1:
+        s1_df = pd.DataFrame.from_dict(st.session_state[f's1_data_{prefix}'], orient='index')
+        s1_df['emission'] = s1_df['usage'] * s1_df['factor']
+        s1_df = s1_df[s1_df['emission'] > 0].reset_index().rename(columns={'index': '燃料類別'})
         create_breakdown_chart(s1_df, '燃料類別', 'emission', '固定源排放')
+
+        s4_items = []
+        for item, values in st.session_state[f's4_data_{prefix}'].items():
+            emission = 0
+            if values.get('gwp') is not None:
+                emission = (values['usage'] * values['gwp']) / 1000
+            elif values.get('factor') is not None:
+                emission = values['usage'] * values['factor']
+            if emission > 0: s4_items.append({'類別': item, 'emission': emission})
+        s4_df = pd.DataFrame(s4_items)
         create_breakdown_chart(s4_df, '類別', 'emission', '滅火器排放')
     with col2:
+        s2_items = []
+        for key, values in st.session_state[f's2_data_{prefix}'].items():
+            emission = values['usage'] * values['factor']
+            if emission > 0: s2_items.append({'燃料類別': values.get('name', key), 'emission': emission})
+        s2_df = pd.DataFrame(s2_items)
         create_breakdown_chart(s2_df, '燃料類別', 'emission', '移動源排放')
+
+        s6_df = pd.DataFrame.from_dict(st.session_state[f's6_data_{prefix}'], orient='index')
+        s6_df['emission'] = (s6_df['distance'] * s6_df['factor']) / 1000
+        s6_df = s6_df[s6_df['emission'] > 0].reset_index().rename(columns={'index': '交通工具'})
         create_breakdown_chart(s6_df, '交通工具', 'emission', '員工通勤排放')
-        
+
+    # --- New row for Wastewater and Refrigerant charts ---
     col1, col2 = st.columns(2)
     with col1:
-        create_breakdown_chart(s3_df, '人員類別', 'emission', '汙水排放')
+        if st.session_state[f's3_septic_system_{prefix}'] == '否 (使用化糞池)':
+            s3_items = []
+            for item, values in st.session_state[f's3_data_{prefix}'].items():
+                emission = values['usage'] * values['factor'] * 28  # GWP for CH4
+                if emission > 0: s3_items.append({'人員類別': item, 'emission': emission})
+            s3_df = pd.DataFrame(s3_items)
+            create_breakdown_chart(s3_df, '人員類別', 'emission', '汙水排放')
+        else:
+            st.write("汙水排放: 無 (已納入汙水下水道)")
+
     with col2:
+        s5_items = []
+        for item, values in st.session_state[f's5_data_{prefix}'].items():
+            emission = (values['usage'] * values['gwp']) / 1000
+            if emission > 0: s5_items.append({'冷媒種類': item, 'emission': emission})
+        s5_df = pd.DataFrame(s5_items)
         create_breakdown_chart(s5_df, '冷媒種類', 'emission', '冷媒逸散排放')
 
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        s7_elec_df_monthly = s7_elec_df.groupby('月份')['emission'].sum().reset_index()
-        if not s7_elec_df_monthly.empty:
-            max_val = s7_elec_df_monthly['emission'].max()
-            colors = ['#FF4136' if v == max_val else '#1E90FF' for v in s7_elec_df_monthly['emission']]
+        s7_elec_df = pd.DataFrame(st.session_state[f's7_electricity_{prefix}'].items(), columns=['月份', '用電量(度)'])
+        s7_elec_df['emission'] = (s7_elec_df['用電量(度)'] * 0.474) / 1000
+        s7_elec_df = s7_elec_df[s7_elec_df['emission'] > 0]
+        if not s7_elec_df.empty:
+            max_val = s7_elec_df['emission'].max()
+            colors = ['#FF4136' if v == max_val else '#1E90FF' for v in s7_elec_df['emission']]
             elec_fig = go.Figure(go.Bar(
-                x=s7_elec_df_monthly['月份'], y=s7_elec_df_monthly['emission'], text=s7_elec_df_monthly['emission'].apply(lambda x: f'{x:.4f}'),
+                x=s7_elec_df['月份'], y=s7_elec_df['emission'], text=s7_elec_df['emission'].apply(lambda x: f'{x:.4f}'),
                 textposition='auto', marker_color=colors
             ))
             elec_fig.update_layout(
@@ -809,13 +747,16 @@ def create_dashboard(prefix, title, data=None):
             st.write("外購電力: 無排放數據")
 
     with col2:
-        s7_water_df_monthly = s7_water_df.groupby('月份')['emission'].sum().reset_index()
-        if not s7_water_df_monthly.empty:
-            max_val = s7_water_df_monthly['emission'].max()
-            colors = ['#FF4136' if v == max_val else '#1E90FF' for v in s7_water_df_monthly['emission']]
+        water_factor = st.session_state[f'water_factors_{prefix}'][st.session_state[f's7_water_source_{prefix}']]
+        s7_water_df = pd.DataFrame(st.session_state[f's7_water_{prefix}'].items(), columns=['月份', '用水量(度)'])
+        s7_water_df['emission'] = (s7_water_df['用水量(度)'] * water_factor) / 1000
+        s7_water_df = s7_water_df[s7_water_df['emission'] > 0]
+        if not s7_water_df.empty:
+            max_val = s7_water_df['emission'].max()
+            colors = ['#FF4136' if v == max_val else '#1E90FF' for v in s7_water_df['emission']]
             water_fig = go.Figure(go.Bar(
-                x=s7_water_df_monthly['月份'], y=s7_water_df_monthly['emission'],
-                text=s7_water_df_monthly['emission'].apply(lambda x: f'{x:.4f}'),
+                x=s7_water_df['月份'], y=s7_water_df['emission'],
+                text=s7_water_df['emission'].apply(lambda x: f'{x:.4f}'),
                 textposition='auto', marker_color=colors
             ))
             water_fig.update_layout(
@@ -999,7 +940,7 @@ def create_input_form(prefix, title):
         cols = st.columns(4)
         for i, month in enumerate(data_water.keys()):
             data_water[month] = cols[i % 4].number_input(month, key=f"s7_water_{month}_{prefix}",
-                                                       value=data_water[month])
+                                                         value=data_water[month])
         total_usage_water = sum(data_water.values())
         water_factor = st.session_state[f'water_factors_{prefix}'][st.session_state[f's7_water_source_{prefix}']]
         total_emission_water = (total_usage_water * water_factor) / 1000
@@ -1131,118 +1072,6 @@ def show_campus_carbon_negative_page():
     # --- Grand Total ---
     st.header(f"{st.session_state.campus_inventory_year} 年度校園總減碳量")
     st.metric("總減碳量 (公噸CO2e/年)", f"{total_reduction:.4f}")
-
-
-def show_analysis_page():
-    """Renders the page for analyzing uploaded Excel data."""
-    st.title("上傳資料分析")
-
-    if st.session_state.uploaded_data is None:
-        st.warning("請先從側邊欄上傳 Excel 檔案。")
-        return
-
-    data = st.session_state.uploaded_data
-    
-    all_years = []
-    for sheet_name, df in data.items():
-        if 'year' in df.columns:
-            # Ensure year column is numeric, coercing errors to NaN and dropping them
-            numeric_years = pd.to_numeric(df['year'], errors='coerce')
-            all_years.extend(numeric_years.dropna().unique())
-    
-    if not all_years:
-        st.error("上傳的 Excel 檔案中找不到有效 'year' 欄位。")
-        return
-        
-    unique_years = sorted(list(set(int(y) for y in all_years)))
-
-    analysis_type = st.radio("選擇分析類型:", ("單一年度分析", "趨勢分析(多年)"), key="analysis_type_selector")
-
-    if analysis_type == "單一年度分析":
-        selected_year = st.selectbox("選擇年度:", unique_years)
-        
-        yearly_data = {}
-        for sheet_name, df in data.items():
-             if 'year' in df.columns:
-                yearly_data[sheet_name] = df[df['year'] == selected_year].copy()
-
-        create_dashboard('historical', str(selected_year), data=yearly_data)
-    
-    else: # Trend Analysis
-        col1, col2 = st.columns(2)
-        with col1:
-            start_year = st.selectbox("選擇起始年份:", options=unique_years, index=0)
-        
-        with col2:
-            # Filter end year options to be >= start_year
-            end_year_options = [year for year in unique_years if year >= start_year]
-            end_year = st.selectbox("選擇結束年份:", options=end_year_options, index=len(end_year_options)-1)
-
-
-        st.subheader(f"{start_year} 至 {end_year} 排放趨勢")
-        
-        filtered_data = {}
-        for sheet_name, df in data.items():
-            if 'year' in df.columns:
-                # Ensure year is numeric before comparison
-                df['year'] = pd.to_numeric(df['year'], errors='coerce')
-                mask = (df['year'] >= start_year) & (df['year'] <= end_year)
-                filtered_data[sheet_name] = df.loc[mask]
-
-        
-        def plot_trend(df, category_col, value_col, title):
-            if df.empty or not all(col in df.columns for col in [category_col, value_col, 'year']):
-                st.write(f"{title}: 缺少必要欄位或無資料可顯示。")
-                return
-
-            trend_data = df.groupby(['year', category_col])[value_col].sum().unstack(fill_value=0)
-            
-            if trend_data.empty:
-                 st.write(f"{title}: 於所選區間內無資料可顯示。")
-                 return
-                 
-            fig = go.Figure()
-            for col in trend_data.columns:
-                fig.add_trace(go.Scatter(
-                    x=trend_data.index, 
-                    y=trend_data[col], 
-                    mode='lines+markers+text', 
-                    name=col,
-                    text=[f'{y:.2f}' for y in trend_data[col]],
-                    textposition="top center"
-                ))
-            
-            fig.update_layout(
-                title_text=title,
-                xaxis_title="年份",
-                yaxis_title="排放量 (tCO2e)",
-                height=400,
-                margin=dict(l=20, r=20, t=40, b=20)
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        plot_trend(filtered_data.get('固定源', pd.DataFrame()), '燃料類別', '排放量(tCO2e)', '固定源排放趨勢')
-        plot_trend(filtered_data.get('移動源', pd.DataFrame()), '燃料類別', '排放量(tCO2e)', '移動源排放趨勢')
-        if '汙水' in filtered_data:
-            plot_trend(filtered_data['汙水'], '人員類別', '排放量(tCO2e)', '汙水排放趨勢')
-        plot_trend(filtered_data.get('滅火器', pd.DataFrame()), '類別', '排放量(tCO2e)', '滅火器排放趨勢')
-        plot_trend(filtered_data.get('冷媒', pd.DataFrame()), '冷媒種類', '排放量(tCO2e)', '冷媒逸散排放趨勢')
-        plot_trend(filtered_data.get('員工通勤', pd.DataFrame()), '交通工具', '排放量(tCO2e)', '員工通勤排放趨勢')
-        
-        # Monthly data trends need special handling
-        elec_trend_data = filtered_data.get('外購電力', pd.DataFrame())
-        if not elec_trend_data.empty:
-            elec_trend = elec_trend_data.groupby('year')['排放量(tCO2e)'].sum().reset_index()
-            fig = go.Figure(go.Scatter(x=elec_trend['year'], y=elec_trend['排放量(tCO2e)'], mode='lines+markers+text', text=[f'{y:.2f}' for y in elec_trend['排放量(tCO2e)']], textposition="top center"))
-            fig.update_layout(title_text='外購電力總排放趨勢', xaxis_title="年份", yaxis_title="總排放量 (tCO2e)")
-            st.plotly_chart(fig, use_container_width=True)
-
-        water_trend_data = filtered_data.get('外購水力', pd.DataFrame())
-        if not water_trend_data.empty:
-            water_trend = water_trend_data.groupby('year')['排放量(tCO2e)'].sum().reset_index()
-            fig = go.Figure(go.Scatter(x=water_trend['year'], y=water_trend['排放量(tCO2e)'], mode='lines+markers+text', text=[f'{y:.2f}' for y in water_trend['排放量(tCO2e)']], textposition="top center"))
-            fig.update_layout(title_text='外購水力總排放趨勢', xaxis_title="年份", yaxis_title="總排放量 (tCO2e)")
-            st.plotly_chart(fig, use_container_width=True)
 
 
 # =============================================================================
