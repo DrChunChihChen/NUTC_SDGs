@@ -1146,15 +1146,17 @@ def show_analysis_page():
     all_years = []
     for sheet_name, df in data.items():
         if 'year' in df.columns:
-            all_years.extend(df['year'].unique())
+            # Ensure year column is numeric, coercing errors to NaN and dropping them
+            numeric_years = pd.to_numeric(df['year'], errors='coerce')
+            all_years.extend(numeric_years.dropna().unique())
     
     if not all_years:
-        st.error("上傳的 Excel 檔案中找不到 'year' 欄位。")
+        st.error("上傳的 Excel 檔案中找不到有效 'year' 欄位。")
         return
         
-    unique_years = sorted(list(set(all_years)))
+    unique_years = sorted(list(set(int(y) for y in all_years)))
 
-    analysis_type = st.radio("選擇分析類型:", ("單一年度分析", "趨勢分析(多年)"))
+    analysis_type = st.radio("選擇分析類型:", ("單一年度分析", "趨勢分析(多年)"), key="analysis_type_selector")
 
     if analysis_type == "單一年度分析":
         selected_year = st.selectbox("選擇年度:", unique_years)
@@ -1167,17 +1169,23 @@ def show_analysis_page():
         create_dashboard('historical', str(selected_year), data=yearly_data)
     
     else: # Trend Analysis
-        start_year, end_year = st.select_slider(
-            "選擇年份範圍:",
-            options=unique_years,
-            value=(unique_years[0], unique_years[-1])
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            start_year = st.selectbox("選擇起始年份:", options=unique_years, index=0)
+        
+        with col2:
+            # Filter end year options to be >= start_year
+            end_year_options = [year for year in unique_years if year >= start_year]
+            end_year = st.selectbox("選擇結束年份:", options=end_year_options, index=len(end_year_options)-1)
+
 
         st.subheader(f"{start_year} 至 {end_year} 排放趨勢")
         
         filtered_data = {}
         for sheet_name, df in data.items():
             if 'year' in df.columns:
+                # Ensure year is numeric before comparison
+                df['year'] = pd.to_numeric(df['year'], errors='coerce')
                 mask = (df['year'] >= start_year) & (df['year'] <= end_year)
                 filtered_data[sheet_name] = df.loc[mask]
 
@@ -1190,12 +1198,19 @@ def show_analysis_page():
             trend_data = df.groupby(['year', category_col])[value_col].sum().unstack(fill_value=0)
             
             if trend_data.empty:
-                 st.write(f"{title}: 無資料可顯示。")
+                 st.write(f"{title}: 於所選區間內無資料可顯示。")
                  return
                  
             fig = go.Figure()
             for col in trend_data.columns:
-                fig.add_trace(go.Scatter(x=trend_data.index, y=trend_data[col], mode='lines+markers', name=col))
+                fig.add_trace(go.Scatter(
+                    x=trend_data.index, 
+                    y=trend_data[col], 
+                    mode='lines+markers+text', 
+                    name=col,
+                    text=[f'{y:.2f}' for y in trend_data[col]],
+                    textposition="top center"
+                ))
             
             fig.update_layout(
                 title_text=title,
@@ -1218,14 +1233,14 @@ def show_analysis_page():
         elec_trend_data = filtered_data.get('外購電力', pd.DataFrame())
         if not elec_trend_data.empty:
             elec_trend = elec_trend_data.groupby('year')['排放量(tCO2e)'].sum().reset_index()
-            fig = go.Figure(go.Scatter(x=elec_trend['year'], y=elec_trend['排放量(tCO2e)'], mode='lines+markers'))
+            fig = go.Figure(go.Scatter(x=elec_trend['year'], y=elec_trend['排放量(tCO2e)'], mode='lines+markers+text', text=[f'{y:.2f}' for y in elec_trend['排放量(tCO2e)']], textposition="top center"))
             fig.update_layout(title_text='外購電力總排放趨勢', xaxis_title="年份", yaxis_title="總排放量 (tCO2e)")
             st.plotly_chart(fig, use_container_width=True)
 
         water_trend_data = filtered_data.get('外購水力', pd.DataFrame())
         if not water_trend_data.empty:
             water_trend = water_trend_data.groupby('year')['排放量(tCO2e)'].sum().reset_index()
-            fig = go.Figure(go.Scatter(x=water_trend['year'], y=water_trend['排放量(tCO2e)'], mode='lines+markers'))
+            fig = go.Figure(go.Scatter(x=water_trend['year'], y=water_trend['排放量(tCO2e)'], mode='lines+markers+text', text=[f'{y:.2f}' for y in water_trend['排放量(tCO2e)']], textposition="top center"))
             fig.update_layout(title_text='外購水力總排放趨勢', xaxis_title="年份", yaxis_title="總排放量 (tCO2e)")
             st.plotly_chart(fig, use_container_width=True)
 
