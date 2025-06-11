@@ -198,14 +198,14 @@ def display_footer():
     st.divider()
 
     # Use relative path or check if file exists
-    logo_path = "OFFICE_NUTC.jpg"
+    logo_path = "OFFICE_NUTC.png"
 
     # Try different possible paths
     possible_paths = [
         logo_path,
         f"images/{logo_path}",
         f"assets/{logo_path}",
-        "OFFICE_NUTC.jpg"  # Original absolute path as fallback
+        "OFFICE_NUTC.png"  # Original absolute path as fallback
     ]
 
     logo_loaded = False
