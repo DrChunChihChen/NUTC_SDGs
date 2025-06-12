@@ -190,7 +190,16 @@ def display_footer():
     """Displays the contact information footer with a sharp logo."""
     st.divider()
 
-    # --- Use the PNG version of your logo ---
+
+    st.caption("""
+    國立臺中科技大學 永續辦公室  
+    地址 : 404 台中市北區三民路三段129號行政大樓4樓1401室  
+    電話 : 04 - 2219 - 6479  
+    傳真 : 04 - 2219 - 5003  
+    信箱 : sdgsnutc2024@gmail.com
+    Copyright © 2025 NUTC. All rights reserved
+    """)
+        # --- Use the PNG version of your logo ---
     logo_path = "OFFICE_NUTC.png"
 
     # Encode the logo to Base64
@@ -209,15 +218,6 @@ def display_footer():
         st.image(logo_path, width=200)
     else:
         st.info("Logo not found. Please place OFFICE_NUTC.png in the program folder.")
-
-    st.caption("""
-    國立臺中科技大學 永續辦公室  
-    地址 : 404 台中市北區三民路三段129號行政大樓4樓1401室  
-    電話 : 04 - 2219 - 6479  
-    傳真 : 04 - 2219 - 5003  
-    信箱 : sdgsnutc2024@gmail.com
-    Copyright © 2025 NUTC. All rights reserved
-    """)
 
 # =============================================================================
 # User Authentication
