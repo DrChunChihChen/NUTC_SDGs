@@ -354,16 +354,6 @@ def get_ar_initial_data(prefix):
                 '柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002630},
                 '潤滑油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002970},
             }
-        elif prefix == 'ar7':
-            # AR7 with updated emission factors
-            st.session_state[f"s1_data_{prefix}"] = {
-                '燃料油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002595},
-                '天然氣(NG)': {'usage': 100, 'unit': '度/年', 'factor': 0.001900},
-                '液化石油氣(LPG)': {'usage': 100, 'unit': '公升/年', 'factor': 0.001775},
-                '汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002295},
-                '柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002645},
-                '潤滑油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002985},
-            }
         else:  # Default for upload
             st.session_state[f"s1_data_{prefix}"] = {
                 '燃料油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002567},
@@ -392,15 +382,6 @@ def get_ar_initial_data(prefix):
                 '潤滑油_mobile': {'name': '潤滑油', 'usage': 100, 'unit': '公升/年', 'factor': 0.002970},
                 '液化石油氣(LPG)_mobile': {'name': '液化石油氣(LPG)', 'usage': 100, 'unit': '公升/年', 'factor': 0.001815},
                 '液化天然氣(LNG)': {'usage': 100, 'unit': '度/年', 'factor': 0.002255},
-            }
-        elif prefix == 'ar7':
-            st.session_state[f"s2_data_{prefix}"] = {
-                '車用汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002325},
-                '車用柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002750},
-                '煤油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002595},
-                '潤滑油_mobile': {'name': '潤滑油', 'usage': 100, 'unit': '公升/年', 'factor': 0.002985},
-                '液化石油氣(LPG)_mobile': {'name': '液化石油氣(LPG)', 'usage': 100, 'unit': '公升/年', 'factor': 0.001825},
-                '液化天然氣(LNG)': {'usage': 100, 'unit': '度/年', 'factor': 0.002270},
             }
         else:  # Default for upload
             st.session_state[f"s2_data_{prefix}"] = {
@@ -460,20 +441,6 @@ def get_ar_initial_data(prefix):
                 'R407C': {'usage': 0.0, 'gwp': 1770}, 'R408A': {'usage': 0.0, 'gwp': 3610},
                 'R410A': {'usage': 0.0, 'gwp': 2256}, 'R413A': {'usage': 0.0, 'gwp': 2220},
                 'R417A': {'usage': 0.0, 'gwp': 2460}, 'R507A': {'usage': 0.0, 'gwp': 4050}
-            }
-        elif prefix == 'ar7':
-            # AR7 with even more updated GWP values
-            st.session_state[f"s5_data_{prefix}"] = {
-                'HFC-23/R-23': {'usage': 0.5, 'gwp': 12800}, 'HFC-32/R-32': {'usage': 0.1, 'gwp': 795},
-                'HFC-41': {'usage': 0.0, 'gwp': 140}, 'HFC-134': {'usage': 0.0, 'gwp': 1400},
-                'HFC-134a/R-134a': {'usage': 0.0, 'gwp': 1560}, 'HFC-143': {'usage': 0.0, 'gwp': 375},
-                'HFC-143a/R-143a': {'usage': 0.0, 'gwp': 5900}, 'HFC-152': {'usage': 0.0, 'gwp': 17},
-                'HFC-152a/R-152a': {'usage': 0.0, 'gwp': 170}, 'R401a': {'usage': 0.0, 'gwp': 1410},
-                'R401B': {'usage': 0.0, 'gwp': 1540}, 'R404A': {'usage': 0.5, 'gwp': 4300},
-                'R407A': {'usage': 0.0, 'gwp': 2400}, 'R407B': {'usage': 0.0, 'gwp': 2900},
-                'R407C': {'usage': 0.0, 'gwp': 1820}, 'R408A': {'usage': 0.0, 'gwp': 3720},
-                'R410A': {'usage': 0.0, 'gwp': 2320}, 'R413A': {'usage': 0.0, 'gwp': 2280},
-                'R417A': {'usage': 0.0, 'gwp': 2530}, 'R507A': {'usage': 0.0, 'gwp': 4180}
             }
         else:  # Default for upload
             st.session_state[f"s5_data_{prefix}"] = {
@@ -538,7 +505,6 @@ def initialize_state():
 
     get_ar_initial_data('ar5')
     get_ar_initial_data('ar6')
-    get_ar_initial_data('ar7')  # Initialize AR7
     get_ar_initial_data('upload')  # Initialize state for upload page
     get_campus_initial_data()
 
@@ -709,11 +675,6 @@ def main_app():
             st.session_state.page = "AR6"
             st.rerun()
 
-        if st.button("AR7-溫室氣體盤查資料", use_container_width=True,
-                     type="primary" if st.session_state.page == "AR7" else "secondary"):
-            st.session_state.page = "AR7"
-            st.rerun()
-
         if st.button("校園負碳", use_container_width=True,
                      type="primary" if st.session_state.page == "Campus" else "secondary"):
             st.session_state.page = "Campus"
@@ -747,11 +708,7 @@ def main_app():
             create_dashboard('ar6', "AR6")
         else:
             create_input_form('ar6', "AR6")
-    elif page == "AR7":
-        if st.session_state.get("show_dashboard_ar7", False):
-            create_dashboard('ar7', "AR7")
-        else:
-            create_input_form('ar7', "AR7")
+
     elif page == "Upload":
         if st.session_state.get("show_dashboard_upload", False):
             create_dashboard('upload', "從Excel匯入")
