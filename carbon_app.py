@@ -230,13 +230,33 @@ def display_footer():
 # =============================================================================
 # User Authentication
 # =============================================================================
-USERS = {
-    "Elvis": "0000",
-    "Nutc1": "0001",
-    "Nutc2": "0002",
-    "Nutc3": "0003"
-}
+def load_users_from_secrets():
+    """
+    Loads user authentication data from st.secrets.
+    It expects user keys (usernames) and values (passwords)
+    under a top-level section named 'auth'.
+    """
+    if "auth" in st.secrets:
+        # st.secrets.auth directly provides a dictionary-like object
+        # for all key-value pairs under the [auth] section.
+        logger.info("Authentication data loaded successfully from Streamlit secrets.")
+        return st.secrets.auth
+    else:
+        st.error("Authentication configuration not found in Streamlit secrets.")
+        st.warning("Please ensure you have an '[auth]' section defined in your secrets "
+                   "with usernames and passwords.")
+        logger.error("Authentication 'auth' section not found in Streamlit secrets.")
+        return {} # Return an empty dict to prevent errors if not found
 
+# Initialize the USERS dictionary by calling the loading function
+USERS = load_users_from_secrets()
+# It's good practice to encapsulate your authentication logic.
+def authenticate_user(username, password):
+    """
+    Authenticates a user against the loaded USERS dictionary.
+    """
+    # Check if the username exists AND if the password matches
+    return username in USERS and USERS[username] == password
 
 def login_page():
     """Renders the login page with a background image."""
