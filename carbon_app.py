@@ -312,6 +312,10 @@ def get_ar_initial_data(prefix):
     # --- State flags ---
     if f"show_dashboard_{prefix}" not in st.session_state:
         st.session_state[f"show_dashboard_{prefix}"] = False
+    if f"data_loaded_{prefix}" not in st.session_state:
+        st.session_state[f"data_loaded_{prefix}"] = False
+    if f"processed_file_id_{prefix}" not in st.session_state:
+        st.session_state[f"processed_file_id_{prefix}"] = None
 
     # --- Inventory Year ---
     if f"inventory_year_{prefix}" not in st.session_state:
@@ -354,8 +358,8 @@ def get_ar_initial_data(prefix):
         st.session_state[f"s4_data_{prefix}"] = {
             '二氧化碳滅火器': {'usage': 1, 'gwp': 1, 'factor': None},
             'FM-200': {'usage': 1, 'gwp': 3350, 'factor': None},
-            'BC型乾粉滅火器': {'usage': 1, 'gwp': None, 'factor': 0.0003},
-            'KBC型乾粉滅火器': {'usage': 1, 'gwp': None, 'factor': 0.0002},
+            'BC型乾粉滅火器': {'usage': 1, 'gwp': 0.0003, 'factor': None},
+            'KBC型乾粉滅火器': {'usage': 1, 'gwp': 0.0002, 'factor': None},
         }
     if f"s5_data_{prefix}" not in st.session_state:
         st.session_state[f"s5_data_{prefix}"] = {
@@ -420,6 +424,7 @@ def initialize_state():
 
     get_ar_initial_data('ar5')
     get_ar_initial_data('ar6')
+    get_ar_initial_data('upload')  # Initialize state for upload page
     get_campus_initial_data()
 
 
@@ -431,6 +436,8 @@ def to_excel(prefix):
     Serializes all input data from session state for a specific AR version into a multi-sheet Excel file.
     """
     output = BytesIO()
+    year = st.session_state[f'inventory_year_{prefix}']
+
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         # Sheet 1: 固定源
         df1 = pd.DataFrame.from_dict(st.session_state[f's1_data_{prefix}'], orient='index')
@@ -438,6 +445,8 @@ def to_excel(prefix):
         df1.index.name = '燃料類別'
         df1.reset_index(inplace=True)
         df1.rename(columns={'usage': '使用量', 'unit': '單位', 'factor': '排放係數'}, inplace=True)
+        df1['盤查年度'] = year
+        df1 = df1[['盤查年度', '燃料類別', '使用量', '單位', '排放係數', '排放量(tCO2e)']]
         df1.to_excel(writer, sheet_name='固定源', index=False)
 
         # Sheet 2: 移動源
@@ -448,7 +457,8 @@ def to_excel(prefix):
             row['排放量(tCO2e)'] = row['usage'] * row['factor']
             df2_data.append(row)
         df2 = pd.DataFrame(df2_data)
-        df2 = df2[['燃料類別', 'usage', 'unit', 'factor', '排放量(tCO2e)']]  # Reorder
+        df2['盤查年度'] = year
+        df2 = df2[['盤查年度', '燃料類別', 'usage', 'unit', 'factor', '排放量(tCO2e)']]  # Reorder
         df2.rename(columns={'usage': '使用量', 'unit': '單位', 'factor': '排放係數'}, inplace=True)
         df2.to_excel(writer, sheet_name='移動源', index=False)
 
@@ -459,16 +469,19 @@ def to_excel(prefix):
             df3.index.name = '人員類別'
             df3.reset_index(inplace=True)
             df3.rename(columns={'usage': '人數', 'factor': '排放係數(CH4)'}, inplace=True)
+            df3['盤查年度'] = year
+            df3 = df3[['盤查年度', '人員類別', '人數', '排放係數(CH4)', '排放量(tCO2e)']]
             df3.to_excel(writer, sheet_name='汙水', index=False)
 
         # Sheet 4: 滅火器
         df4 = pd.DataFrame.from_dict(st.session_state[f's4_data_{prefix}'], orient='index')
         df4['排放量(tCO2e)'] = 0  # Initialize column
         df4.loc[df4['gwp'].notna(), '排放量(tCO2e)'] = (df4['usage'] * df4['gwp']) / 1000
-        df4.loc[df4['factor'].notna(), '排放量(tCO2e)'] = df4['usage'] * df4['factor']
         df4.index.name = '類別'
         df4.reset_index(inplace=True)
-        df4.rename(columns={'usage': '每年填充/使用量(公斤/年)', 'gwp': 'GWP係數', 'factor': '排放係數'}, inplace=True)
+        df4.rename(columns={'usage': '每年填充/使用量(公斤/年)', 'gwp': 'GWP係數'}, inplace=True)
+        df4['盤查年度'] = year
+        df4 = df4[['盤查年度', '類別', '每年填充/使用量(公斤/年)', 'GWP係數', '排放量(tCO2e)']]
         df4.to_excel(writer, sheet_name='滅火器', index=False)
 
         # Sheet 5: 冷媒
@@ -477,6 +490,8 @@ def to_excel(prefix):
         df5.index.name = '冷媒種類'
         df5.reset_index(inplace=True)
         df5.rename(columns={'usage': '每年填充量(公斤/年)', 'gwp': 'GWP係數'}, inplace=True)
+        df5['盤查年度'] = year
+        df5 = df5[['盤查年度', '冷媒種類', '每年填充量(公斤/年)', 'GWP係數', '排放量(tCO2e)']]
         df5.to_excel(writer, sheet_name='冷媒', index=False)
 
         # Sheet 6: 員工通勤
@@ -485,21 +500,27 @@ def to_excel(prefix):
         df6.index.name = '交通工具'
         df6.reset_index(inplace=True)
         df6.rename(columns={'distance': '總通勤距離(公里/年)', 'factor': '排放係數(KgCO2e/pkm)'}, inplace=True)
+        df6['盤查年度'] = year
+        df6 = df6[['盤查年度', '交通工具', '總通勤距離(公里/年)', '排放係數(KgCO2e/pkm)', '排放量(tCO2e)']]
         df6.to_excel(writer, sheet_name='員工通勤', index=False)
 
         # Sheet 7: 外購電力
         df7_elec = pd.DataFrame(st.session_state[f's7_electricity_{prefix}'].items(), columns=['月份', '用電量(度)'])
         df7_elec['排放量(tCO2e)'] = (df7_elec['用電量(度)'] * 0.474) / 1000
+        df7_elec['盤查年度'] = year
+        df7_elec = df7_elec[['盤查年度', '月份', '用電量(度)', '排放量(tCO2e)']]
         df7_elec.to_excel(writer, sheet_name='外購電力', index=False)
 
         # Sheet 8: 外購水力
         water_factor = st.session_state[f'water_factors_{prefix}'][st.session_state[f's7_water_source_{prefix}']]
         df7_water = pd.DataFrame(st.session_state[f's7_water_{prefix}'].items(), columns=['月份', '用水量(度)'])
         df7_water['排放量(tCO2e)'] = (df7_water['用水量(度)'] * water_factor) / 1000
+        df7_water['盤查年度'] = year
+        df7_water = df7_water[['盤查年度', '月份', '用水量(度)', '排放量(tCO2e)']]
         df7_water.to_excel(writer, sheet_name='外購水力', index=False)
         worksheet = writer.sheets['外購水力']
-        worksheet.write_string('E1', f'供水單位: {st.session_state[f"s7_water_source_{prefix}"]}')
-        worksheet.write_string('E2', f'排放係數: {water_factor}')
+        worksheet.write_string('F1', f'供水單位: {st.session_state[f"s7_water_source_{prefix}"]}')
+        worksheet.write_string('F2', f'排放係數: {water_factor}')
 
     processed_data = output.getvalue()
     return processed_data
@@ -581,6 +602,11 @@ def main_app():
             st.session_state.page = "Campus"
             st.rerun()
 
+        if st.button("從Excel匯入", use_container_width=True,
+                     type="primary" if st.session_state.page == "Upload" else "secondary"):
+            st.session_state.page = "Upload"
+            st.rerun()
+
         st.divider()
         if st.button("登出"):
             for key in list(st.session_state.keys()):
@@ -604,6 +630,11 @@ def main_app():
             create_dashboard('ar6', "AR6")
         else:
             create_input_form('ar6', "AR6")
+    elif page == "Upload":
+        if st.session_state.get("show_dashboard_upload", False):
+            create_dashboard('upload', "從Excel匯入")
+        else:
+            create_upload_page()
     elif page == "Campus":
         show_campus_carbon_negative_page()
 
@@ -773,15 +804,19 @@ def create_input_form(prefix, title):
     st.title(f"{title}-溫室氣體盤查資料輸入")
 
     # --- Year Selector ---
-    years_options = list(range(datetime.now().year + 25, 2019, -1))
-    try:
-        index = years_options.index(st.session_state[f'inventory_year_{prefix}'])
-    except (KeyError, ValueError):
-        index = years_options.index(datetime.now().year) if datetime.now().year in years_options else 0
-
-    st.session_state[f'inventory_year_{prefix}'] = st.selectbox(
-        "盤查年度:", years_options, index=index, key=f'year_selector_{prefix}'
-    )
+    if prefix == 'upload':
+        st.subheader(f"盤查年度: {st.session_state[f'inventory_year_{prefix}']}")
+    else:
+        years_options = list(range(datetime.now().year + 25, 2019, -1))
+        try:
+            current_year = st.session_state[f'inventory_year_{prefix}']
+            index = years_options.index(current_year)
+        except (KeyError, ValueError):
+            current_year = datetime.now().year
+            index = years_options.index(current_year) if current_year in years_options else 0
+        st.session_state[f'inventory_year_{prefix}'] = st.selectbox(
+            "盤查年度:", years_options, index=index, key=f'year_selector_{prefix}'
+        )
 
     st.info("請填寫以下各類別的活動數據，系統將自動計算排放量。")
     st.divider()
@@ -869,8 +904,6 @@ def create_input_form(prefix, title):
             emission = 0
             if values.get('gwp') is not None:
                 emission = (values['usage'] * values['gwp']) / 1000
-            elif values.get('factor') is not None:
-                emission = values['usage'] * values['factor']
             cols[2].text_input(" ", f"{emission:.4f}", key=f"s4_{item}_out_{prefix}", disabled=True,
                                label_visibility="collapsed")
             total += emission
@@ -965,6 +998,102 @@ def create_input_form(prefix, title):
             st.rerun()
 
 
+def create_upload_page():
+    """Renders the page for uploading data from an Excel file."""
+    st.title("從 Excel 匯入資料")
+    prefix = 'upload'
+
+    uploaded_file = st.file_uploader(
+        "上傳您先前下載的溫室氣體盤查資料 Excel 檔",
+        type=['xlsx'],
+        key=f'uploader_{prefix}'
+    )
+
+    current_file_id = None
+    if uploaded_file is not None:
+        current_file_id = f"{uploaded_file.name}-{uploaded_file.size}"
+
+    if uploaded_file is not None and current_file_id != st.session_state.get(f'processed_file_id_{prefix}'):
+        try:
+            xls = pd.ExcelFile(uploaded_file)
+            temp_data = {}
+
+            # --- Read and clean all sheets ---
+            df1 = pd.read_excel(xls, '固定源').fillna(0)
+            st.session_state[f'inventory_year_{prefix}'] = int(df1['盤查年度'][0])
+            temp_data[f's1_data_{prefix}'] = \
+            df1.set_index('燃料類別').rename(columns={'使用量': 'usage', '單位': 'unit', '排放係數': 'factor'})[
+                ['usage', 'unit', 'factor']].to_dict('index')
+
+            df2 = pd.read_excel(xls, '移動源').fillna(0)
+            s2_ar5_template = st.session_state.get('s2_data_ar5', {})
+            name_to_key_map = {v.get('name', k): k for k, v in s2_ar5_template.items()}
+            df2['key'] = df2['燃料類別'].map(name_to_key_map)
+            df2.dropna(subset=['key'], inplace=True)
+            temp_data[f's2_data_{prefix}'] = \
+            df2.set_index('key').rename(columns={'使用量': 'usage', '單位': 'unit', '排放係數': 'factor'})[
+                ['usage', 'unit', 'factor']].to_dict('index')
+            for key, val in temp_data[f's2_data_{prefix}'].items():
+                if key in s2_ar5_template:
+                    val['name'] = s2_ar5_template[key].get('name')
+
+            if '汙水' in xls.sheet_names:
+                df3 = pd.read_excel(xls, '汙水').fillna(0)
+                temp_data[f's3_data_{prefix}'] = \
+                df3.set_index('人員類別').rename(columns={'人數': 'usage', '排放係數(CH4)': 'factor'})[
+                    ['usage', 'factor']].to_dict('index')
+                temp_data[f's3_septic_system_{prefix}'] = '否 (使用化糞池)'
+            else:
+                get_ar_initial_data(prefix)
+                temp_data[f's3_septic_system_{prefix}'] = '是 (無化糞池逸散)'
+
+            df4 = pd.read_excel(xls, '滅火器').fillna(0)
+            df4.loc[df4['GWP係數'] == 0, 'GWP係數'] = None
+            temp_data[f's4_data_{prefix}'] = df4.set_index('類別').rename(
+                columns={'每年填充/使用量(公斤/年)': 'usage', 'GWP係數': 'gwp'})[
+                ['usage', 'gwp']].to_dict('index')
+
+            df5 = pd.read_excel(xls, '冷媒').fillna(0)
+            temp_data[f's5_data_{prefix}'] = \
+            df5.set_index('冷媒種類').rename(columns={'每年填充量(公斤/年)': 'usage', 'GWP係數': 'gwp'})[
+                ['usage', 'gwp']].to_dict('index')
+
+            df6 = pd.read_excel(xls, '員工通勤').fillna(0)
+            temp_data[f's6_data_{prefix}'] = df6.set_index('交通工具').rename(
+                columns={'總通勤距離(公里/年)': 'distance', '排放係數(KgCO2e/pkm)': 'factor'})[
+                ['distance', 'factor']].to_dict('index')
+
+            df7 = pd.read_excel(xls, '外購電力').fillna(0)
+            temp_data[f's7_electricity_{prefix}'] = df7.set_index('月份')['用電量(度)'].to_dict()
+
+            df8 = pd.read_excel(xls, '外購水力').fillna(0)
+            temp_data[f's7_water_{prefix}'] = df8.set_index('月份')['用水量(度)'].to_dict()
+
+            for key, value in temp_data.items():
+                st.session_state[key] = value
+
+            st.session_state[f'data_loaded_{prefix}'] = True
+            st.session_state[f'processed_file_id_{prefix}'] = current_file_id
+            st.success("Excel 檔案已成功載入！請在下方頁籤中檢視或編輯資料。")
+
+        except Exception as e:
+            st.error(f"讀取 Excel 檔案時發生錯誤: {e}")
+            st.warning("請確認您上傳的是從本系統下載的檔案，且格式未被修改。")
+            logger.error(f"Excel parsing failed: {e}")
+            st.session_state[f'data_loaded_{prefix}'] = False
+            st.session_state[f'processed_file_id_{prefix}'] = None
+
+    if st.session_state.get(f'data_loaded_{prefix}', False):
+        if st.button("清除已上傳資料並重新上傳", use_container_width=True):
+            st.session_state[f'data_loaded_{prefix}'] = False
+            st.session_state[f'processed_file_id_{prefix}'] = None
+            get_ar_initial_data(prefix)
+            st.rerun()
+        create_input_form(prefix, "從Excel匯入")
+    else:
+        st.info("請上傳一個 Excel 檔案以載入資料。")
+
+
 def show_campus_carbon_negative_page():
     """Renders the interactive page for Campus Carbon Negative projects."""
     st.title("校園負碳")
@@ -977,7 +1106,7 @@ def show_campus_carbon_negative_page():
         key='campus_year_selector'
     )
 
-    st.info("請在此頁面輸入或編輯校園的減碳活動數據，系統將自動計算總減碳量。")
+    st.info("請在此頁面輸入或編輯校園の減碳活動數據，系統將自動計算總減碳量。")
 
     total_reduction = 0
 
