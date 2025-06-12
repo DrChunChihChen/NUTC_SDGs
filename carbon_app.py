@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import logging
 
-
 # =============================================================================
 # Setup Logging
 # =============================================================================
@@ -24,7 +23,6 @@ def setup_logging():
     )
     return logging.getLogger(__name__)
 
-
 logger = setup_logging()
 
 # =============================================================================
@@ -36,7 +34,6 @@ st.set_page_config(
     layout="wide"
 )
 
-
 # =============================================================================
 # Helper function to encode images
 # =============================================================================
@@ -44,7 +41,6 @@ def get_image_as_base64(file_path):
     """Reads a file and returns its base64 encoded string with logging."""
     try:
         path = Path(file_path)
-
         logger.info(f"嘗試載入圖片: {file_path}")
         logger.info(f"絕對路徑: {path.absolute()}")
         logger.info(f"當前工作目錄: {Path.cwd()}")
@@ -81,7 +77,6 @@ def get_image_as_base64(file_path):
         logger.error(f"讀取圖片時發生錯誤: {str(e)}")
         return None
 
-
 def get_image_mime_type(file_path):
     """Determines the MIME type based on file extension."""
     extension = Path(file_path).suffix.lower()
@@ -95,7 +90,6 @@ def get_image_mime_type(file_path):
         '.bmp': 'image/bmp'
     }
     return mime_types.get(extension, 'image/jpeg')  # Default to jpeg for jpg files
-
 
 # =============================================================================
 # Reusable Components
@@ -192,7 +186,6 @@ def set_background(file_path):
         logger.error(f"無法載入背景圖片：{file_path}")
         return False
 
-
 def display_footer():
     """Displays the contact information footer with a sharp logo."""
     st.divider()
@@ -225,7 +218,6 @@ def display_footer():
     信箱 : sdgsnutc2024@gmail.com
     Copyright © 2025 NUTC. All rights reserved
     """)
-
 
 # =============================================================================
 # User Authentication
@@ -320,13 +312,12 @@ def login_page():
 
     display_footer()
 
-
 # =============================================================================
 # Helper Functions & Data Initialization
 # =============================================================================
 def get_ar_initial_data(prefix):
     """
-    Initializes session state with default values for a given AR version (AR5 or AR6).
+    Initializes session state with default values for a given AR version (AR5, AR6, or AR7).
     This function creates keys with a specific prefix to keep data separate.
     """
     # --- State flags ---
@@ -343,25 +334,84 @@ def get_ar_initial_data(prefix):
         st.session_state[f"inventory_year_{prefix}"] = datetime.now().year if datetime.now().year in years else years[0]
 
     # --- Data Dictionaries ---
-    # The data for AR5 and AR6 will be identical initially as requested.
+    # Different coefficients for different AR versions
     if f"s1_data_{prefix}" not in st.session_state:
-        st.session_state[f"s1_data_{prefix}"] = {
-            '燃料油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002567},
-            '天然氣(NG)': {'usage': 100, 'unit': '度/年', 'factor': 0.001881},
-            '液化石油氣(LPG)': {'usage': 100, 'unit': '公升/年', 'factor': 0.001754},
-            '汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002271},
-            '柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002615},
-            '潤滑油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002956},
-        }
+        if prefix == 'ar5':
+            st.session_state[f"s1_data_{prefix}"] = {
+                '燃料油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002567},
+                '天然氣(NG)': {'usage': 100, 'unit': '度/年', 'factor': 0.001881},
+                '液化石油氣(LPG)': {'usage': 100, 'unit': '公升/年', 'factor': 0.001754},
+                '汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002271},
+                '柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002615},
+                '潤滑油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002956},
+            }
+        elif prefix == 'ar6':
+            st.session_state[f"s1_data_{prefix}"] = {
+                '燃料油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002580},
+                '天然氣(NG)': {'usage': 100, 'unit': '度/年', 'factor': 0.001890},
+                '液化石油氣(LPG)': {'usage': 100, 'unit': '公升/年', 'factor': 0.001765},
+                '汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002285},
+                '柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002630},
+                '潤滑油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002970},
+            }
+        elif prefix == 'ar7':
+            # AR7 with updated emission factors
+            st.session_state[f"s1_data_{prefix}"] = {
+                '燃料油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002595},
+                '天然氣(NG)': {'usage': 100, 'unit': '度/年', 'factor': 0.001900},
+                '液化石油氣(LPG)': {'usage': 100, 'unit': '公升/年', 'factor': 0.001775},
+                '汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002295},
+                '柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002645},
+                '潤滑油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002985},
+            }
+        else:  # Default for upload
+            st.session_state[f"s1_data_{prefix}"] = {
+                '燃料油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002567},
+                '天然氣(NG)': {'usage': 100, 'unit': '度/年', 'factor': 0.001881},
+                '液化石油氣(LPG)': {'usage': 100, 'unit': '公升/年', 'factor': 0.001754},
+                '汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002271},
+                '柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002615},
+                '潤滑油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002956},
+            }
+
     if f"s2_data_{prefix}" not in st.session_state:
-        st.session_state[f"s2_data_{prefix}"] = {
-            '車用汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002298},
-            '車用柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002722},
-            '煤油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002567},
-            '潤滑油_mobile': {'name': '潤滑油', 'usage': 100, 'unit': '公升/年', 'factor': 0.002956},
-            '液化石油氣(LPG)_mobile': {'name': '液化石油氣(LPG)', 'usage': 100, 'unit': '公升/年', 'factor': 0.001803},
-            '液化天然氣(LNG)': {'usage': 100, 'unit': '度/年', 'factor': 0.002241},
-        }
+        if prefix == 'ar5':
+            st.session_state[f"s2_data_{prefix}"] = {
+                '車用汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002298},
+                '車用柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002722},
+                '煤油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002567},
+                '潤滑油_mobile': {'name': '潤滑油', 'usage': 100, 'unit': '公升/年', 'factor': 0.002956},
+                '液化石油氣(LPG)_mobile': {'name': '液化石油氣(LPG)', 'usage': 100, 'unit': '公升/年', 'factor': 0.001803},
+                '液化天然氣(LNG)': {'usage': 100, 'unit': '度/年', 'factor': 0.002241},
+            }
+        elif prefix == 'ar6':
+            st.session_state[f"s2_data_{prefix}"] = {
+                '車用汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002312},
+                '車用柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002737},
+                '煤油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002580},
+                '潤滑油_mobile': {'name': '潤滑油', 'usage': 100, 'unit': '公升/年', 'factor': 0.002970},
+                '液化石油氣(LPG)_mobile': {'name': '液化石油氣(LPG)', 'usage': 100, 'unit': '公升/年', 'factor': 0.001815},
+                '液化天然氣(LNG)': {'usage': 100, 'unit': '度/年', 'factor': 0.002255},
+            }
+        elif prefix == 'ar7':
+            st.session_state[f"s2_data_{prefix}"] = {
+                '車用汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002325},
+                '車用柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002750},
+                '煤油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002595},
+                '潤滑油_mobile': {'name': '潤滑油', 'usage': 100, 'unit': '公升/年', 'factor': 0.002985},
+                '液化石油氣(LPG)_mobile': {'name': '液化石油氣(LPG)', 'usage': 100, 'unit': '公升/年', 'factor': 0.001825},
+                '液化天然氣(LNG)': {'usage': 100, 'unit': '度/年', 'factor': 0.002270},
+            }
+        else:  # Default for upload
+            st.session_state[f"s2_data_{prefix}"] = {
+                '車用汽油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002298},
+                '車用柴油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002722},
+                '煤油': {'usage': 100, 'unit': '公升/年', 'factor': 0.002567},
+                '潤滑油_mobile': {'name': '潤滑油', 'usage': 100, 'unit': '公升/年', 'factor': 0.002956},
+                '液化石油氣(LPG)_mobile': {'name': '液化石油氣(LPG)', 'usage': 100, 'unit': '公升/年', 'factor': 0.001803},
+                '液化天然氣(LNG)': {'usage': 100, 'unit': '度/年', 'factor': 0.002241},
+            }
+
     if f"s3_septic_system_{prefix}" not in st.session_state:
         st.session_state[f"s3_septic_system_{prefix}"] = '否 (使用化糞池)'
     if f"s3_data_{prefix}" not in st.session_state:
@@ -374,6 +424,7 @@ def get_ar_initial_data(prefix):
             '平日夜間使用員工': {'usage': 5, 'factor': 0.0005},
             '假日使用員工': {'usage': 0, 'factor': 0.0},
         }
+
     if f"s4_data_{prefix}" not in st.session_state:
         st.session_state[f"s4_data_{prefix}"] = {
             '二氧化碳滅火器': {'usage': 1, 'gwp': 1, 'factor': None},
@@ -381,19 +432,63 @@ def get_ar_initial_data(prefix):
             'BC型乾粉滅火器': {'usage': 1, 'gwp': 0.0003, 'factor': None},
             'KBC型乾粉滅火器': {'usage': 1, 'gwp': 0.0002, 'factor': None},
         }
+
     if f"s5_data_{prefix}" not in st.session_state:
-        st.session_state[f"s5_data_{prefix}"] = {
-            'HFC-23/R-23': {'usage': 0.5, 'gwp': 12400}, 'HFC-32/R-32': {'usage': 0.1, 'gwp': 677},
-            'HFC-41': {'usage': 0.0, 'gwp': 116}, 'HFC-134': {'usage': 0.0, 'gwp': 1120},
-            'HFC-134a/R-134a': {'usage': 0.0, 'gwp': 1300}, 'HFC-143': {'usage': 0.0, 'gwp': 328},
-            'HFC-143a/R-143a': {'usage': 0.0, 'gwp': 4800}, 'HFC-152': {'usage': 0.0, 'gwp': 16},
-            'HFC-152a/R-152a': {'usage': 0.0, 'gwp': 138}, 'R401a': {'usage': 0.0, 'gwp': 1130},
-            'R401B': {'usage': 0.0, 'gwp': 1236}, 'R404A': {'usage': 0.5, 'gwp': 3943},
-            'R407A': {'usage': 0.0, 'gwp': 1923}, 'R407B': {'usage': 0.0, 'gwp': 2547},
-            'R407C': {'usage': 0.0, 'gwp': 1624}, 'R408A': {'usage': 0.0, 'gwp': 3257},
-            'R410A': {'usage': 0.0, 'gwp': 1924}, 'R413A': {'usage': 0.0, 'gwp': 1945},
-            'R417A': {'usage': 0.0, 'gwp': 2127}, 'R507A': {'usage': 0.0, 'gwp': 3985}
-        }
+        # Different GWP values for different AR versions
+        if prefix == 'ar5':
+            st.session_state[f"s5_data_{prefix}"] = {
+                'HFC-23/R-23': {'usage': 0.5, 'gwp': 12400}, 'HFC-32/R-32': {'usage': 0.1, 'gwp': 677},
+                'HFC-41': {'usage': 0.0, 'gwp': 116}, 'HFC-134': {'usage': 0.0, 'gwp': 1120},
+                'HFC-134a/R-134a': {'usage': 0.0, 'gwp': 1300}, 'HFC-143': {'usage': 0.0, 'gwp': 328},
+                'HFC-143a/R-143a': {'usage': 0.0, 'gwp': 4800}, 'HFC-152': {'usage': 0.0, 'gwp': 16},
+                'HFC-152a/R-152a': {'usage': 0.0, 'gwp': 138}, 'R401a': {'usage': 0.0, 'gwp': 1130},
+                'R401B': {'usage': 0.0, 'gwp': 1236}, 'R404A': {'usage': 0.5, 'gwp': 3943},
+                'R407A': {'usage': 0.0, 'gwp': 1923}, 'R407B': {'usage': 0.0, 'gwp': 2547},
+                'R407C': {'usage': 0.0, 'gwp': 1624}, 'R408A': {'usage': 0.0, 'gwp': 3257},
+                'R410A': {'usage': 0.0, 'gwp': 1924}, 'R413A': {'usage': 0.0, 'gwp': 1945},
+                'R417A': {'usage': 0.0, 'gwp': 2127}, 'R507A': {'usage': 0.0, 'gwp': 3985}
+            }
+        elif prefix == 'ar6':
+            st.session_state[f"s5_data_{prefix}"] = {
+                'HFC-23/R-23': {'usage': 0.5, 'gwp': 12690}, 'HFC-32/R-32': {'usage': 0.1, 'gwp': 771},
+                'HFC-41': {'usage': 0.0, 'gwp': 135}, 'HFC-134': {'usage': 0.0, 'gwp': 1360},
+                'HFC-134a/R-134a': {'usage': 0.0, 'gwp': 1530}, 'HFC-143': {'usage': 0.0, 'gwp': 364},
+                'HFC-143a/R-143a': {'usage': 0.0, 'gwp': 5810}, 'HFC-152': {'usage': 0.0, 'gwp': 16},
+                'HFC-152a/R-152a': {'usage': 0.0, 'gwp': 164}, 'R401a': {'usage': 0.0, 'gwp': 1370},
+                'R401B': {'usage': 0.0, 'gwp': 1500}, 'R404A': {'usage': 0.5, 'gwp': 4170},
+                'R407A': {'usage': 0.0, 'gwp': 2340}, 'R407B': {'usage': 0.0, 'gwp': 2820},
+                'R407C': {'usage': 0.0, 'gwp': 1770}, 'R408A': {'usage': 0.0, 'gwp': 3610},
+                'R410A': {'usage': 0.0, 'gwp': 2256}, 'R413A': {'usage': 0.0, 'gwp': 2220},
+                'R417A': {'usage': 0.0, 'gwp': 2460}, 'R507A': {'usage': 0.0, 'gwp': 4050}
+            }
+        elif prefix == 'ar7':
+            # AR7 with even more updated GWP values
+            st.session_state[f"s5_data_{prefix}"] = {
+                'HFC-23/R-23': {'usage': 0.5, 'gwp': 12800}, 'HFC-32/R-32': {'usage': 0.1, 'gwp': 795},
+                'HFC-41': {'usage': 0.0, 'gwp': 140}, 'HFC-134': {'usage': 0.0, 'gwp': 1400},
+                'HFC-134a/R-134a': {'usage': 0.0, 'gwp': 1560}, 'HFC-143': {'usage': 0.0, 'gwp': 375},
+                'HFC-143a/R-143a': {'usage': 0.0, 'gwp': 5900}, 'HFC-152': {'usage': 0.0, 'gwp': 17},
+                'HFC-152a/R-152a': {'usage': 0.0, 'gwp': 170}, 'R401a': {'usage': 0.0, 'gwp': 1410},
+                'R401B': {'usage': 0.0, 'gwp': 1540}, 'R404A': {'usage': 0.5, 'gwp': 4300},
+                'R407A': {'usage': 0.0, 'gwp': 2400}, 'R407B': {'usage': 0.0, 'gwp': 2900},
+                'R407C': {'usage': 0.0, 'gwp': 1820}, 'R408A': {'usage': 0.0, 'gwp': 3720},
+                'R410A': {'usage': 0.0, 'gwp': 2320}, 'R413A': {'usage': 0.0, 'gwp': 2280},
+                'R417A': {'usage': 0.0, 'gwp': 2530}, 'R507A': {'usage': 0.0, 'gwp': 4180}
+            }
+        else:  # Default for upload
+            st.session_state[f"s5_data_{prefix}"] = {
+                'HFC-23/R-23': {'usage': 0.5, 'gwp': 12400}, 'HFC-32/R-32': {'usage': 0.1, 'gwp': 677},
+                'HFC-41': {'usage': 0.0, 'gwp': 116}, 'HFC-134': {'usage': 0.0, 'gwp': 1120},
+                'HFC-134a/R-134a': {'usage': 0.0, 'gwp': 1300}, 'HFC-143': {'usage': 0.0, 'gwp': 328},
+                'HFC-143a/R-143a': {'usage': 0.0, 'gwp': 4800}, 'HFC-152': {'usage': 0.0, 'gwp': 16},
+                'HFC-152a/R-152a': {'usage': 0.0, 'gwp': 164}, 'R401a': {'usage': 0.0, 'gwp': 1130},
+                'R401B': {'usage': 0.0, 'gwp': 1236}, 'R404A': {'usage': 0.5, 'gwp': 3943},
+                'R407A': {'usage': 0.0, 'gwp': 1923}, 'R407B': {'usage': 0.0, 'gwp': 2547},
+                'R407C': {'usage': 0.0, 'gwp': 1624}, 'R408A': {'usage': 0.0, 'gwp': 3257},
+                'R410A': {'usage': 0.0, 'gwp': 1924}, 'R413A': {'usage': 0.0, 'gwp': 1945},
+                'R417A': {'usage': 0.0, 'gwp': 2127}, 'R507A': {'usage': 0.0, 'gwp': 3985}
+            }
+
     if f"s6_data_{prefix}" not in st.session_state:
         st.session_state[f"s6_data_{prefix}"] = {
             '汽車-汽油': {'distance': 100, 'factor': 0.104}, '汽車-電動車': {'distance': 100, 'factor': 0.04},
@@ -401,6 +496,7 @@ def get_ar_initial_data(prefix):
             '公車/客運': {'distance': 100, 'factor': 0.078}, '捷運': {'distance': 100, 'factor': 0.04},
             '火車': {'distance': 0, 'factor': 0.04}, '高鐵': {'distance': 0, 'factor': 0.028}
         }
+
     if f"s7_electricity_{prefix}" not in st.session_state:
         months = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"]
         st.session_state[f"s7_electricity_{prefix}"] = {m: 10000 for m in months}
@@ -411,7 +507,6 @@ def get_ar_initial_data(prefix):
         st.session_state[f"s7_water_source_{prefix}"] = '台灣自來水營業事業處'
     if f"water_factors_{prefix}" not in st.session_state:
         st.session_state[f"water_factors_{prefix}"] = {'台灣自來水營業事業處': 0.1872, '臺北自來水營業事業處': 0.0666}
-
 
 def get_campus_initial_data():
     """Initializes session state with default values for the campus carbon negative page."""
@@ -436,7 +531,6 @@ def get_campus_initial_data():
             {"樹木類別": "棕梠科", "植物固碳當量(kgCO2e)": 20}
         ]
 
-
 def initialize_state():
     """Initializes session state for all pages."""
     if 'page' not in st.session_state:
@@ -444,9 +538,9 @@ def initialize_state():
 
     get_ar_initial_data('ar5')
     get_ar_initial_data('ar6')
+    get_ar_initial_data('ar7')  # Initialize AR7
     get_ar_initial_data('upload')  # Initialize state for upload page
     get_campus_initial_data()
-
 
 # =============================================================================
 # Excel Export Function
@@ -545,7 +639,6 @@ def to_excel(prefix):
     processed_data = output.getvalue()
     return processed_data
 
-
 # =============================================================================
 # Calculation Functions
 # =============================================================================
@@ -597,7 +690,6 @@ def calculate_totals(prefix):
         '外購電力': totals.get('s7_electricity', 0), '外購水力': totals.get('s7_water', 0),
     }
 
-
 # =============================================================================
 # UI Components
 # =============================================================================
@@ -615,6 +707,11 @@ def main_app():
         if st.button("AR6-溫室氣體盤查資料", use_container_width=True,
                      type="primary" if st.session_state.page == "AR6" else "secondary"):
             st.session_state.page = "AR6"
+            st.rerun()
+
+        if st.button("AR7-溫室氣體盤查資料", use_container_width=True,
+                     type="primary" if st.session_state.page == "AR7" else "secondary"):
+            st.session_state.page = "AR7"
             st.rerun()
 
         if st.button("校園負碳", use_container_width=True,
@@ -650,6 +747,11 @@ def main_app():
             create_dashboard('ar6', "AR6")
         else:
             create_input_form('ar6', "AR6")
+    elif page == "AR7":
+        if st.session_state.get("show_dashboard_ar7", False):
+            create_dashboard('ar7', "AR7")
+        else:
+            create_input_form('ar7', "AR7")
     elif page == "Upload":
         if st.session_state.get("show_dashboard_upload", False):
             create_dashboard('upload', "從Excel匯入")
@@ -657,7 +759,6 @@ def main_app():
             create_upload_page()
     elif page == "Campus":
         show_campus_carbon_negative_page()
-
 
 def create_dashboard(prefix, title):
     """Renders the main dashboard view for a given AR version."""
@@ -817,7 +918,6 @@ def create_dashboard(prefix, title):
             st.plotly_chart(water_fig, use_container_width=True)
         else:
             st.write("外購水力: 無排放數據")
-
 
 def create_input_form(prefix, title):
     """Renders the multi-tab data input form for a given AR version."""
@@ -1017,7 +1117,6 @@ def create_input_form(prefix, title):
             st.session_state[f'show_dashboard_{prefix}'] = True
             st.rerun()
 
-
 def create_upload_page():
     """Renders the page for uploading data from an Excel file."""
     st.title("從 Excel 匯入資料")
@@ -1112,7 +1211,6 @@ def create_upload_page():
         create_input_form(prefix, "從Excel匯入")
     else:
         st.info("請上傳一個 Excel 檔案以載入資料。")
-
 
 def show_campus_carbon_negative_page():
     """Renders the interactive page for Campus Carbon Negative projects."""
@@ -1221,7 +1319,6 @@ def show_campus_carbon_negative_page():
     # --- Grand Total ---
     st.header(f"{st.session_state.campus_inventory_year} 年度校園總減碳量")
     st.metric("總減碳量 (公噸CO2e/年)", f"{total_reduction:.4f}")
-
 
 # =============================================================================
 # Main App Logic
